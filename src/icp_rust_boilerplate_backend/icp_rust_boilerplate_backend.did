@@ -1,0 +1,59 @@
+type Item = record {
+  id : text;
+  name : text;
+  description : text;
+  created_at : nat64;
+  quantity : nat32;
+};
+type ItemPayload = record { name : text; description : text; quantity : nat32 };
+type Message = variant {
+  Error : text;
+  InvalidPayload : text;
+  NotFound : text;
+  Success : text;
+};
+type Order = record {
+  id : text;
+  supplier_id : text;
+  order_date : nat64;
+  quantity : nat32;
+  item_id : text;
+};
+type OrderPayload = record {
+  supplier_id : text;
+  quantity : nat32;
+  item_id : text;
+};
+type Result = variant { Ok : Item; Err : Message };
+type Result_1 = variant { Ok : Order; Err : Message };
+type Result_2 = variant { Ok : Supplier; Err : Message };
+type Result_3 = variant { Ok; Err : Message };
+type Supplier = record {
+  id : text;
+  name : text;
+  created_at : nat64;
+  items_supplied_ids : vec text;
+  contact_info : text;
+};
+type SupplierPayload = record { name : text; contact_info : text };
+service : {
+  count_items : () -> (nat64) query;
+  count_orders : () -> (nat64) query;
+  count_suppliers : () -> (nat64) query;
+  create_item : (ItemPayload) -> (Result);
+  create_order : (OrderPayload) -> (Result_1);
+  create_supplier : (SupplierPayload) -> (Result_2);
+  delete_item : (text) -> (Result_3);
+  delete_order : (text) -> (Result_3);
+  delete_supplier : (text) -> (Result_3);
+  filter_orders_by_supplier : (text) -> (vec Order) query;
+  get_all_items : () -> (vec Item) query;
+  get_all_orders : () -> (vec Order) query;
+  get_all_suppliers : () -> (vec Supplier) query;
+  get_item_by_id : (text) -> (Result) query;
+  get_supplier_by_id : (text) -> (Result_2) query;
+  search_items_by_name : (text) -> (vec Item) query;
+  update_item : (text, ItemPayload) -> (Result);
+  update_order : (text, OrderPayload) -> (Result_1);
+  update_supplier : (text, SupplierPayload) -> (Result_2);
+}
