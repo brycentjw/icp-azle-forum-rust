@@ -206,14 +206,16 @@ fn get_all_banned_addresses() -> Result<Vec<String>, Error> {
 fn create_category(category: CategoryPayload) -> Result<Category, Error> {
     let caller: String = api::caller().to_string();
     let is_admin = _check_if_admin(&caller);
-    if is_admin {
-        if category.name.is_empty() {
-            return Err(Error::EmptyFields {
-                msg: "Please fill in all the required fields to create a course".to_string(),
-            });
-        }
-        let id = _get_id();
+    
+    // Validate the payload
+    if category.name.is_empty() {
+        return Err(Error::InvalidPayload(
+            "Category 'name' cannot be empty.".to_string(),
+        ));
+    }
 
+    if is_admin {
+        let id = _get_id();
         let category = Category {
             id: id,
             name: category.name,
@@ -237,14 +239,21 @@ fn create_category(category: CategoryPayload) -> Result<Category, Error> {
 fn create_topic(category_id: u64, topic: TopicPayload) -> Result<Topic, Error> {
     let caller: String = api::caller().to_string();
     let is_banned = _check_if_banned(&caller);
-    if !is_banned {
-        if topic.title.is_empty() || topic.content.is_empty() || topic.category_id.is_empty() {
-            return Err(Error::EmptyFields {
-                msg: "Please fill in all the required fields to create a course".to_string(),
-            });
-        }
-        let id = _get_id();
 
+    // Validate the payload
+    if topic.title.is_empty() {
+        return Err(Error::InvalidPayload(
+            "Topic 'title' cannot be empty.".to_string(),
+        ));
+    }
+    if topic.content.is_empty() {
+        return Err(Error::InvalidPayload(
+            "Topic 'content' cannot be empty.".to_string(),
+        ));
+    }
+
+    if !is_banned {
+        let id = _get_id();
         let topic = Topic {
             id: id,
             title: topic.title,
@@ -260,11 +269,10 @@ fn create_topic(category_id: u64, topic: TopicPayload) -> Result<Topic, Error> {
             most_recent_activity: time(),
         };
 
-        let mut category = _get_category(&topic.category_id).unwrap();
-
+        let mut category = _get_category(&category_id).unwrap();
         category.topics.insert(id, topic.clone());
 
-        _acknowledge_topic_activity(&topic.category_id, &id);
+        _acknowledge_topic_activity(&category_id, &id);
 
         Ok(topic)
     } else {
@@ -278,18 +286,17 @@ fn create_topic(category_id: u64, topic: TopicPayload) -> Result<Topic, Error> {
 #[ic_cdk::update]
 fn create_post(category_id: u64, topic_id: u64, post: PostPayload) -> Result<Post, Error> {
     let caller: String = api::caller().to_string();
-
     let is_banned = _check_if_banned(&caller);
 
+    // Validate the payload
+    if post.content.is_empty() {
+        return Err(Error::InvalidPayload(
+            "Post 'content' cannot be empty.".to_string(),
+        ));
+    }
+
     if !is_banned {
-        if post.content.is_empty() {
-            return Err(Error::EmptyFields {
-                msg: "Please fill in all the required fields to create a course".to_string(),
-            });
-        }
-
         let id = _get_id();
-
         let post = Post {
             id: id,
             content: post.content,
@@ -302,7 +309,6 @@ fn create_post(category_id: u64, topic_id: u64, post: PostPayload) -> Result<Pos
         };
 
         let mut topic = _get_topic(&category_id, &topic_id).unwrap();
-
         topic.posts.insert(id, post.clone());
 
         Ok(post)
